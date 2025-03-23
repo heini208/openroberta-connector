@@ -31,6 +31,8 @@ class ArduinoCommunicator {
     private final String avrdudeConfPath;
     private final String bossacPath;
     private String esptoolPath = "";
+    private Process pythonProcess = null;
+
 
     private final IWiredRobot robot;
 
@@ -45,6 +47,8 @@ class ArduinoCommunicator {
                 this.avrdudePath = PropertyHelper.getInstance().getProperty("avrdudeLinPath32");
             } else if ( SystemUtils.OS_ARCH.equals("arm") ) {
                 this.avrdudePath = PropertyHelper.getInstance().getProperty("avrdudeLinPathArm32");
+            } else if ( SystemUtils.OS_ARCH.equals("aarch64") ){
+                this.avrdudePath = PropertyHelper.getInstance().getProperty("avrdudeLinPathRaspberry");
             } else {
                 this.avrdudePath = PropertyHelper.getInstance().getProperty("avrdudeLinPath64");
             }
@@ -87,6 +91,16 @@ class ArduinoCommunicator {
         try {
             switch ( this.robot.getType() ) {
                 case UNO:
+                    killPythonScript();
+                    addAvrDudeStdParams(args, avrdudePath, avrdudeConfPath, filePath, portName);
+                    args.add("-patmega328p", "-carduino");
+                    Pair<Integer, String> result = runProcessUntilTermination(args, true);
+                    if (result.getFirst() == 0) { // If flashing is successful
+                        installPythonDependencies();
+                        startPythonScript();
+                    }
+
+                    return result;
                 case NANO:
                 case BOTNROLL:
                 case MBOT:
@@ -165,6 +179,56 @@ class ArduinoCommunicator {
             return new Pair<>(1, "Something went wrong while uploading the file.");
         }
     }
+
+    private void startPythonScript() {
+        try {
+            String pythonPath = System.getProperty("user.home") + "/my_env/bin/python";
+            ProcessBuilder processBuilder = new ProcessBuilder(
+                pythonPath, "./resources/linux/arduino/qiskit/Serial_Qiskit.py"
+            );
+            processBuilder.inheritIO();
+            Process process = processBuilder.start();
+            LOG.info("Started Serial_Qiskit.py using my_env.");
+        } catch (IOException e) {
+            LOG.error("Failed to start Serial_Qiskit.py", e);
+        }
+    }
+
+    private void killPythonScript() {
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder("pkill", "-f", "Serial_Qiskit.py");
+            processBuilder.inheritIO();
+            Process process = processBuilder.start();
+            process.waitFor();
+            LOG.info("Stopped Serial_Qiskit.py");
+        } catch (IOException | InterruptedException e) {
+            LOG.error("Failed to stop Serial_Qiskit.py", e);
+        }
+    }
+
+    private void installPythonDependencies() {
+        String pythonPath = System.getProperty("user.home") + "/my_env/bin/python";
+        String[] requiredPackages = {"qiskit", "qiskit-ibm-runtime", "pyserial", "qiskit-aer"};
+
+        for (String pkg : requiredPackages) {
+            try {
+                ProcessBuilder processBuilder = new ProcessBuilder(
+                    pythonPath, "-m", "pip", "install", pkg
+                );
+                processBuilder.inheritIO();
+                Process process = processBuilder.start();
+                int exitCode = process.waitFor();
+                if (exitCode == 0) {
+                    LOG.info("Successfully installed: " + pkg);
+                } else {
+                    LOG.error("Failed to install: " + pkg);
+                }
+            } catch (IOException | InterruptedException e) {
+                LOG.error("Error installing Python package: " + pkg, e);
+            }
+        }
+    }
+
 
     /**
      * add the avrdudePath and some standard parameter to the arg list
