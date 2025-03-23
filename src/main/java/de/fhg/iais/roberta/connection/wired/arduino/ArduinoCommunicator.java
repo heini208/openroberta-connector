@@ -45,14 +45,17 @@ class ArduinoCommunicator {
         } else if ( SystemUtils.IS_OS_LINUX ) {
             if ( SystemUtils.OS_ARCH.equals("i386") ) {
                 this.avrdudePath = PropertyHelper.getInstance().getProperty("avrdudeLinPath32");
+                this.avrdudeConfPath = PropertyHelper.getInstance().getProperty("avrdudeLinConfPath");
             } else if ( SystemUtils.OS_ARCH.equals("arm") ) {
                 this.avrdudePath = PropertyHelper.getInstance().getProperty("avrdudeLinPathArm32");
+                this.avrdudeConfPath = PropertyHelper.getInstance().getProperty("avrdudeLinConfPath");
             } else if ( SystemUtils.OS_ARCH.equals("aarch64") ){
                 this.avrdudePath = PropertyHelper.getInstance().getProperty("avrdudeLinPathRaspberry");
+                this.avrdudeConfPath = PropertyHelper.getInstance().getProperty("avrdudeLinConfPathRaspberry");
             } else {
                 this.avrdudePath = PropertyHelper.getInstance().getProperty("avrdudeLinPath64");
+                this.avrdudeConfPath = PropertyHelper.getInstance().getProperty("avrdudeLinConfPath");
             }
-            this.avrdudeConfPath = PropertyHelper.getInstance().getProperty("avrdudeLinConfPath");
             this.bossacPath = PropertyHelper.getInstance().getProperty("bossacLinPath");
         } else if ( SystemUtils.IS_OS_MAC ) {
             this.avrdudePath = PropertyHelper.getInstance().getProperty("avrdudeOsXPath");
