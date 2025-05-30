@@ -63,7 +63,7 @@ def get_job_result(job_id: str) -> list[int]:
     service = QiskitRuntimeService()
     job = service.job(job_id)
     result = job.result()
-    counts = result.get_counts()
+    counts = result[0].data['c'].get_counts()
 
     return list(map(int, list(counts.keys())[0]))
 
